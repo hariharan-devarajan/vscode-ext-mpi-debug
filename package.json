@@ -1,0 +1,30 @@
+{
+  "name": "test-extension",
+  "displayName": "Test Extension",
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "test-extension.Hari",
+        "title": "Hari"
+      },
+      {
+        "command": "test-extension.quickPick",
+        "title": "Quick Pick"
+      }
+    ]
+  },
+  "activationEvents": [
+    "onCommand:test-extension.Hari",
+    "onCommand:test-extension.quickPick"
+  ],
+  "dependencies": {
+    "ws": "^8.4.0"
+  },
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.58.0"
+  },
+  "publisher": "Hariharan",
+  "license": "MIT License"
+}
