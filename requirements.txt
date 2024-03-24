@@ -1,1 +1,3 @@
 vscode.py==2.0.0b2
+json-with-comments==1.2.4
+paramiko

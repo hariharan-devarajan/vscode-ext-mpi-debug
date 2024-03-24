@@ -1,22 +1,33 @@
 {
-  "name": "test-extension",
-  "displayName": "Test Extension",
+  "name": "mpi-debug",
+  "displayName": "MPI Debug",
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "test-extension.Hari",
-        "title": "Hari"
-      },
-      {
-        "command": "test-extension.quickPick",
-        "title": "Quick Pick"
+        "command": "mpi-debug.Attach to job",
+        "title": "Attach To Job",
+        "category": "MPI Debug"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "MPI Debug",
+      "properties": {
+        "mpi-debug.gdbserver": {
+          "description": "Specifies the path of gdbserver",
+          "type": "string",
+          "default": "gdbserver"
+        },
+        "mpi-debug.configuration_file": {
+          "description": "Conf location for debug",
+          "type": "string",
+          "default": "${workspaceFolder}/.vscode/mpidebug/debug.conf"
+        }
+      }
+    }
   },
   "activationEvents": [
-    "onCommand:test-extension.Hari",
-    "onCommand:test-extension.quickPick"
+    "onCommand:mpi-debug.Attach to job"
   ],
   "dependencies": {
     "ws": "^8.4.0"

@@ -1,37 +1,109 @@
+import os
 import vscode
-from vscode import InfoMessage
-ext_mdata = vscode.ExtensionMetadata(publisher="Hariharan", license="MIT License")
-ext = vscode.Extension(name="Test Extension",metadata=ext_mdata)
+import jsonc
+import shutil
+import paramiko
+from vscode import InfoMessage, ErrorMessage, Config
+ext_mdata = vscode.ExtensionMetadata(publisher="Hariharan", license="MIT License",display_name="MPI Debug")
 
+gdbserver_cfg = Config(name='gdbserver', description='Specifies the path of gdbserver', input_type=str, default="gdbserver")
+ext = vscode.Extension(name="MPI Debug",metadata=ext_mdata, config=[gdbserver_cfg])
 @ext.event
 async def on_activate():
     vscode.log(f"The Extension '{ext.name}' has started")
 
 
-@ext.command(name="Hari")
-async def hello_world(ctx):
-    vscode.log(f"Running hello world")
-    return await ctx.show(InfoMessage(f"Hello World from {ext.name}"))
+@ext.command(category="MPI Debug", name="Attach to job")
+async def attach(ctx):
+    gdbserver_exe = await ctx.workspace.get_config_value(gdbserver_cfg)
+    vscode.log(f"Reading gdbserver_exe {gdbserver_exe}")
+    folders = await ctx.workspace.get_workspace_folders()
+    app_root = str(folders[0].uri)
+    vscode.log(f"Reading app_root {app_root}")
+    conf_file = os.path.join(app_root, ".vscode", "debug.conf")
+    file = open(conf_file, 'r')
+    lines = file.readlines()
+    file.close()
+    if len(lines) == 0:
+        return await ctx.show(ErrorMessage(f"Debug file {conf_file} not found."))
+    else:
+        total_lines = int(lines[0])
+        if len(lines) - 1 != total_lines:
+             return await ctx.show(ErrorMessage(f"Debug file {conf_file} does not have all lines."))
+        vals = [{}]*total_lines
+        for line in lines:
+            exec, rank, hostname, port, pid = line.split(":")
+            exec = exec.strip()
+            rank = int(rank.strip())
+            hostname = hostname.strip()
+            port = int(port.strip())
+            pid = int(pid.strip())
+            vals[rank] = {"hostname":hostname, "port":port, "pid":pid, "exec":exec}
+        launch_file = os.path.join(app_root, ".vscode", "launch.json")
+        with open(launch_file, "r") as jsonFile:
+            launch_data = jsonc.load(jsonFile)
+        
+        # clean previous configurations
+        confs = launch_data["configurations"]
+        final_confs = []
+        for conf in confs:
+            if "mpi_gdb" not in conf["name"]:
+                final_confs.append(conf)
+        
+        compound_names = []
+        for rank, val in enumerate(vals):
+            exec = val["exec"]
+            port = val["port"]
+            hostname = val["hostname"]
+            test_name = f"mpi_gdb for rank {rank}"
+            final_confs.append({
+                "type": "gdb",
+                "request": "attach",
+                "name": test_name,
+                "executable": f"{exec}",
+                "target": f"{hostname}:{port}",
+                "remote": True,
+                "cwd": "${workspaceRoot}", 
+                "gdbpath": "gdb"
+            })
+            compound_names.append(test_name)
+        final_compounds = []
+        compounds = []
+        if "compounds" in launch_data:
+            compounds = launch_data["compounds"]
+        final_compounds = []
+        for compound in compounds:
+            if "mpi_gdb" not in compound["name"]:
+                final_compounds.append(compound)
+        
+        final_compounds.append({
+            "name": "mpi_gdb compound",
+            "configurations": compound_names,
+            "preLaunchTask": "${defaultBuildTask}",
+            "stopAll": True
+        })
+        launch_data["compounds"] = final_compounds
 
-@ext.command()
-async def quick_pick(ctx):
-    # items can be a list of strings, dicts or QuickPickItem
-    items = [
-        vscode.QuickPickItem(label="Youtube", detail="A video sharing platform"),
-        vscode.QuickPickItem(label="Github", detail="A code sharing platform"),
-    ]
 
-    options = vscode.QuickPickOptions(match_on_detail=True)
-    selected = await ctx.window.show(vscode.QuickPick(items, options))
+        launch_data["configurations"]=final_confs
+        with open(launch_file, "w") as jsonFile:
+            jsonc.dump(launch_data, jsonFile, indent=2)
 
-    if not selected:
-        return  # stops execution if selected is undefined or empty
+        gdbserver_exe = shutil.which("gdbserver")
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        for rank, val in enumerate(vals):
+            hostname, port, pid = val["hostname"], val["port"], val["pid"]
+            vscode.log(f"rank:{rank} hostname:{hostname} port:{port} pid:{pid}")
+            ssh.connect(hostname)
+            cmd = f"{gdbserver_exe} {hostname}:{port} --attach {pid} > {os.getcwd()}/gdbserver-{hostname}-{pid}.log 2>&1 &"
+            vscode.log(f"cmd:{cmd}")
+            transport = ssh.get_transport()
+            channel = transport.open_session()
+            channel.exec_command(cmd)
+            ssh.close() 
+            vscode.log(f"vals has {len(vals)} values")
 
-    # selected will either be QuickPickItem
-    # or a list of QuickPickItem
-    # if can_pick_many was set to True
-
-    await ctx.window.show(vscode.InfoMessage(f"You selected: {selected.label}"))
-
+    return await ctx.show(InfoMessage(f"Hello World from {ext.name} {conf_file}"))
 
 ext.run()

@@ -21,14 +21,8 @@ function commandCallback(command) {
 function registerCommands(context) {
 	
   context.subscriptions.push(
-    vscode.commands.registerCommand("test-extension.Hari", () =>
-        commandCallback("Hari")
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("test-extension.quickPick", () =>
-        commandCallback("quickPick")
+    vscode.commands.registerCommand("mpi-debug.Attach to job", () =>
+        commandCallback("Attach to job")
     )
   );
 
