@@ -17,11 +17,6 @@
           "description": "Specifies the path of gdbserver",
           "type": "string",
           "default": "gdbserver"
-        },
-        "mpi-debug.configuration_file": {
-          "description": "Conf location for debug",
-          "type": "string",
-          "default": "${workspaceFolder}/.vscode/mpidebug/debug.conf"
         }
       }
     }

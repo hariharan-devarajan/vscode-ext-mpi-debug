@@ -31,7 +31,9 @@ async def attach(ctx):
         if len(lines) - 1 != total_lines:
              return await ctx.show(ErrorMessage(f"Debug file {conf_file} does not have all lines."))
         vals = [{}]*total_lines
-        for line in lines:
+        for line in lines[1:]:
+            if line == "":
+                continue
             exec, rank, hostname, port, pid = line.split(":")
             exec = exec.strip()
             rank = int(rank.strip())
@@ -89,7 +91,6 @@ async def attach(ctx):
         with open(launch_file, "w") as jsonFile:
             jsonc.dump(launch_data, jsonFile, indent=2)
 
-        gdbserver_exe = shutil.which("gdbserver")
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         for rank, val in enumerate(vals):
@@ -103,7 +104,6 @@ async def attach(ctx):
             channel.exec_command(cmd)
             ssh.close() 
             vscode.log(f"vals has {len(vals)} values")
-
-    return await ctx.show(InfoMessage(f"Hello World from {ext.name} {conf_file}"))
+            await ctx.show(InfoMessage(f"Connected {gdbserver_exe} to {hostname}:{port} --attach {pid}"))
 
 ext.run()
