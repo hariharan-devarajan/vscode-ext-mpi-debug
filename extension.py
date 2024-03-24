@@ -81,7 +81,6 @@ async def attach(ctx):
         final_compounds.append({
             "name": "mpi_gdb compound",
             "configurations": compound_names,
-            "preLaunchTask": "${defaultBuildTask}",
             "stopAll": True
         })
         launch_data["compounds"] = final_compounds
