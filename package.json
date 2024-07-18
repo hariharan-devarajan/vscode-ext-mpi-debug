@@ -17,6 +17,11 @@
           "description": "Specifies the path of gdbserver",
           "type": "string",
           "default": "gdbserver"
+        },
+        "mpi-debug.debug_conf": {
+          "description": "Specifies the path of debug.conf",
+          "type": "string",
+          "default": "./debug.conf"
         }
       }
     }
