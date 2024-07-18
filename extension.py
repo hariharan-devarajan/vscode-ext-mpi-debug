@@ -7,7 +7,8 @@ from vscode import InfoMessage, ErrorMessage, Config
 ext_mdata = vscode.ExtensionMetadata(publisher="Hariharan", license="MIT License",display_name="MPI Debug")
 
 gdbserver_cfg = Config(name='gdbserver', description='Specifies the path of gdbserver', input_type=str, default="gdbserver")
-ext = vscode.Extension(name="MPI Debug",metadata=ext_mdata, config=[gdbserver_cfg])
+debug_cfg = Config(name='debug_conf', description='Specifies the path of debug.conf', input_type=str, default="./debug.conf")
+ext = vscode.Extension(name="MPI Debug",metadata=ext_mdata, config=[gdbserver_cfg,debug_cfg])
 @ext.event
 async def on_activate():
     vscode.log(f"The Extension '{ext.name}' has started")
@@ -16,11 +17,13 @@ async def on_activate():
 @ext.command(category="MPI Debug", name="Attach to job")
 async def attach(ctx):
     gdbserver_exe = await ctx.workspace.get_config_value(gdbserver_cfg)
+    debug_conf = await ctx.workspace.get_config_value(debug_cfg)
     vscode.log(f"Reading gdbserver_exe {gdbserver_exe}")
+    vscode.log(f"Reading debug_conf {debug_conf}")
     folders = await ctx.workspace.get_workspace_folders()
     app_root = str(folders[0].uri)
     vscode.log(f"Reading app_root {app_root}")
-    conf_file = os.path.join(app_root, ".vscode", "debug.conf")
+    conf_file = debug_conf
     file = open(conf_file, 'r')
     lines = file.readlines()
     file.close()
